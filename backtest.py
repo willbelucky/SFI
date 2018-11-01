@@ -52,7 +52,6 @@ pgpr = ((kosdaq[PGPR] > 0) & (kosdaq[PGPR] < 5)) * 1
 popr = ((kosdaq[POPR] > 0) & (kosdaq[POPR] < 15)) * 1
 qroe = (kosdaq[QROE] > 0.03) * 1
 roic = (kosdaq[ROIC] > 0.015) * 1
-roaqoq = ((kosdaq[ROAQOQ] > 0.2) & (kosdaq[ROAQOQ] < 0.5)) * 1
 gpa = (kosdaq[GP_A] > 0.3) * 1
 mom1 = (kosdaq[MOM1] > 0) * 1
 mom3 = (kosdaq[MOM3] > 0) * 1
@@ -71,7 +70,6 @@ pgpr = ((kospi[PGPR] > 0) & (kospi[PGPR] < 5)) * 1
 popr = ((kospi[POPR] > 0) & (kospi[POPR] < 15)) * 1
 qroe = (kospi[QROE] > 0.03) * 1
 roic = (kospi[ROIC] > 0.02) * 1
-roaqoq = ((kospi[ROAQOQ] > 0) & (kospi[ROAQOQ] < 0.6)) * 1
 roayoy = (kospi[ROAYOY] > 0) * 1
 gpa = (kospi[GP_A] > 0.3) * 1
 mom1 = (kospi[MOM1] > 0) * 1
@@ -85,57 +83,66 @@ kospi[SCORE] \
       + kospi[MIN_MAX_GP_A]
 
 
-def calculate_rank_ic(portfolio: Portfolio, rolling: int = 6) -> pd.DataFrame:
-    portfolio = portfolio.periodic_rank(min_rank=1, max_rank=10000, factor=SCORE, drop_rank=False)
-    score_rank = "score_rank"
-    portfolio = portfolio.rename(index=str, columns={"rank": score_rank})
-    portfolio = portfolio.periodic_rank(min_rank=1, max_rank=10000, factor=RET_1, drop_rank=False)
+def plot_rank_ic(portfolio: Portfolio, factor: str,
+                 rolling: int = 6, title: str = '') -> pd.DataFrame:
+    portfolio = portfolio.periodic_rank(min_rank=1, max_rank=10000, factor=factor, drop_rank=False)
+    factor_rank = "{factor}_rank".format(factor=factor)
+    portfolio = portfolio.rename(index=str, columns={"rank": factor_rank})
+    portfolio = portfolio.periodic_rank(min_rank=1, max_rank=10000, factor=RET_3, drop_rank=False)
     ret_1_rank = "ret_1_rank"
     portfolio = portfolio.rename(index=str, columns={"rank": ret_1_rank})
     rank_ic = portfolio.groupby(by=[DATE]).apply(
-        lambda x: 1 - (6 * ((x[score_rank] - x[ret_1_rank]) ** 2).sum()) / (len(x) * (len(x) ** 2 - 1)))
+        lambda x: 1 - (6 * ((x[factor_rank] - x[ret_1_rank]) ** 2).sum()) / (len(x) * (len(x) ** 2 - 1)))
 
     rank_ic = pd.DataFrame(rank_ic, columns=['rank_ic'])
-    rank_ic['rolling_{}'.format(rolling)] = rank_ic['rank_ic'].rolling(window=rolling).mean()
+    rolling_column_name = 'rolling_{}'.format(rolling)
+    rank_ic[rolling_column_name] = rank_ic['rank_ic'].rolling(window=rolling).mean()
+    rank_ic = rank_ic.dropna(subset=[rolling_column_name])
 
     rank_ic.plot()
-    plt.title('KOSPI Rank IC')
+    plt.title(title)
     plt.axhline(y=0, color='black')
+    plt.ylabel('Rank IC')
+    plt.xlabel('Date')
     plt.show()
 
     return rank_ic
 
 
-# periodic_rank(factor='score', 15)
-kospi_rank_ic = calculate_rank_ic(kospi, 12)
-kosdaq_rank_ic = calculate_rank_ic(kosdaq, 12)
-
-kospi_rank_ic.plot()
-plt.title('KOSPI Rank IC')
-plt.axhline(y=0, color='black')
-plt.show()
-
-kosdaq_rank_ic.plot()
-plt.title('KOSDAQ Rank IC')
-plt.axhline(y=0, color='black')
-plt.show()
+# %% Score check
+kospi.quantile_distribution_ratio(factor=SCORE, cumulative=True, show_plot=True, show_bar_chart=True,
+                                  title='SFI KOSPI decile')
+plot_rank_ic(kospi, SCORE, title='SFI KOSPI')
+kosdaq.quantile_distribution_ratio(factor=SCORE, cumulative=True, show_plot=True, show_bar_chart=True,
+                                   title='SFI KOSDAQ decile')
+plot_rank_ic(kosdaq, SCORE, title='SFI KOSDAQ')
 
 # %% KOSPI
+
 print("KOSPI")
-kospi_outcome = kospi.outcome()
-kospi.show_plot(title='Adapted KOSPI')
+kospi_selected = kospi.periodic_rank(min_rank=1, max_rank=15, factor=SCORE)
+kospi_outcome = kospi_selected.outcome()
 print(kospi_outcome)
 print("CAGR:{}".format((kospi_outcome['total_return'] + 1) ** (12 / period_len) - 1))
-kospi_simulation = kospi.quantile_distribution_ratio(factor=SCORE, cumulative=False, show_plot=False)
-# print(kospi_selected.loc[kospi_selected[DATE] == '2018-08-31', [CODE, NAME, SCORE, ENDP, TRADING_CAPITAL]])
-kospi.quantile_distribution_ratio(factor=SCORE, cumulative=True, show_plot=True, title='KOSPI 10 Quantile')
+kospi_selected.show_plot(title='SFI KOSPI')
+print(kospi_selected.loc[kospi_selected[DATE] == '2018-10-31', [CODE, NAME, SCORE, ENDP]])
 
 # %% KOSDAQ
 print("KOSDAQ")
-kosdaq_outcome = kosdaq.outcome()
-kosdaq.show_plot(title='Adapted KOSDAQ')
+kosdaq_selected = kosdaq.periodic_rank(min_rank=1, max_rank=15, factor=SCORE)
+kosdaq_outcome = kosdaq_selected.outcome()
 print(kosdaq_outcome)
 print("CAGR:{}".format((kosdaq_outcome['total_return'] + 1) ** (12 / period_len) - 1))
-kosdaq_simulation = kosdaq.quantile_distribution_ratio(factor=SCORE, cumulative=False, show_plot=False)
-# print(kosdaq_selected.loc[kosdaq_selected[DATE] == '2018-08-31', [CODE, NAME, SCORE, ENDP, TRADING_CAPITAL]])
-kosdaq.quantile_distribution_ratio(factor=SCORE, cumulative=True, show_plot=True, title='KOSDAQ 10 Quantile')
+kosdaq_selected.show_plot(title='SFI KOSDAQ')
+print(kosdaq_selected.loc[kosdaq_selected[DATE] == '2018-10-31', [CODE, NAME, SCORE, ENDP]])
+
+# %% Count universe
+universe_count = universe.loc[:, [DATE, CODE]].groupby(by=[DATE]).count()
+kospi_count = kospi.loc[:, [DATE, CODE]].groupby(by=[DATE]).count()
+kosdaq_count = kosdaq.loc[:, [DATE, CODE]].groupby(by=[DATE]).count()
+
+universe_count = universe_count.rename(index=str, columns={CODE: 'universe'})
+universe_count['KOSPI'] = kospi_count[CODE]
+universe_count['KOSDAQ'] = kosdaq_count[CODE]
+
+universe_count.to_csv('universe_count.csv')

@@ -5,3 +5,9 @@
 *.h5
 *.csv
 *.xlsx
+
+# temp files
+test.py
+
+.DS_Store
+data/.DS_Store
