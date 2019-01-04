@@ -117,32 +117,34 @@ kosdaq.quantile_distribution_ratio(factor=SCORE, cumulative=True, show_plot=True
                                    title='SFI KOSDAQ decile')
 plot_rank_ic(kosdaq, SCORE, title='SFI KOSDAQ')
 
+# %% Count universe
+universe_count = universe.loc[:, [DATE, RET_1]].groupby(by=[DATE]).count()
+kospi_count = kospi.loc[:, [DATE, RET_1]].groupby(by=[DATE]).count()
+kosdaq_count = kosdaq.loc[:, [DATE, RET_1]].groupby(by=[DATE]).count()
+
+universe_count = universe_count.rename(index=str, columns={RET_1: 'universe'})
+universe_count['KOSPI'] = kospi_count[RET_1]
+universe_count['KOSDAQ'] = kosdaq_count[RET_1]
+
+universe_count.plot()
+plt.show()
+universe_count.to_csv('universe_count.csv')
+
 # %% KOSPI
 
-print("KOSPI")
 kospi_selected = kospi.periodic_rank(min_rank=1, max_rank=15, factor=SCORE)
+print("KOSPI {}".format(kospi_selected[DATE].max()))
 kospi_outcome = kospi_selected.outcome()
 print(kospi_outcome)
 print("CAGR:{}".format((kospi_outcome['total_return'] + 1) ** (12 / period_len) - 1))
 kospi_selected.show_plot(title='SFI KOSPI')
-print(kospi_selected.loc[kospi_selected[DATE] == '2018-10-31', [CODE, NAME, SCORE, ENDP]])
+print(kospi_selected.loc[kospi_selected[DATE] == kospi_selected[DATE].max(), [CODE, NAME]])
 
 # %% KOSDAQ
-print("KOSDAQ")
 kosdaq_selected = kosdaq.periodic_rank(min_rank=1, max_rank=15, factor=SCORE)
+print("KOSDAQ {}".format(kosdaq_selected[DATE].max()))
 kosdaq_outcome = kosdaq_selected.outcome()
 print(kosdaq_outcome)
 print("CAGR:{}".format((kosdaq_outcome['total_return'] + 1) ** (12 / period_len) - 1))
 kosdaq_selected.show_plot(title='SFI KOSDAQ')
-print(kosdaq_selected.loc[kosdaq_selected[DATE] == '2018-10-31', [CODE, NAME, SCORE, ENDP]])
-
-# %% Count universe
-universe_count = universe.loc[:, [DATE, CODE]].groupby(by=[DATE]).count()
-kospi_count = kospi.loc[:, [DATE, CODE]].groupby(by=[DATE]).count()
-kosdaq_count = kosdaq.loc[:, [DATE, CODE]].groupby(by=[DATE]).count()
-
-universe_count = universe_count.rename(index=str, columns={CODE: 'universe'})
-universe_count['KOSPI'] = kospi_count[CODE]
-universe_count['KOSDAQ'] = kosdaq_count[CODE]
-
-universe_count.to_csv('universe_count.csv')
+print(kosdaq_selected.loc[kosdaq_selected[DATE] == kosdaq_selected[DATE].max(), [CODE, NAME]])
