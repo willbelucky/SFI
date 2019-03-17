@@ -8,6 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from ksif import Portfolio
 from ksif.core.columns import *
+from pprint import pprint
 
 TRADING_CAPITAL = 'trading_capital'
 
@@ -33,7 +34,7 @@ pf = Portfolio()
 universe = pf.loc[
            (pf[MKTCAP] < 800000000000) &
            (pf[MKTCAP] > 50000000000) &
-           (pf[DATE] >= '2011-05-31') &
+           (pf[DATE] >= '2007-05-31') &
            (pf[ENDP] > 1000), :]
 period_len = len(universe[DATE].unique())
 universe[MIN_MAX_GP_A] = min_max_scale(universe[GP_A])
@@ -134,17 +135,17 @@ universe_count.to_csv('universe_count.csv')
 
 kospi_selected = kospi.periodic_rank(min_rank=1, max_rank=15, factor=SCORE)
 print("KOSPI {}".format(kospi_selected[DATE].max()))
-kospi_outcome = kospi_selected.outcome()
-print(kospi_outcome)
-print("CAGR:{}".format((kospi_outcome['total_return'] + 1) ** (12 / period_len) - 1))
-kospi_selected.show_plot(title='SFI KOSPI')
-print(kospi_selected.loc[kospi_selected[DATE] == kospi_selected[DATE].max(), [CODE, NAME]])
+kospi_outcome = kospi_selected.outcome(show_plot=True)
+pprint(kospi_outcome)
 
 # %% KOSDAQ
 kosdaq_selected = kosdaq.periodic_rank(min_rank=1, max_rank=15, factor=SCORE)
 print("KOSDAQ {}".format(kosdaq_selected[DATE].max()))
-kosdaq_outcome = kosdaq_selected.outcome()
-print(kosdaq_outcome)
-print("CAGR:{}".format((kosdaq_outcome['total_return'] + 1) ** (12 / period_len) - 1))
-kosdaq_selected.show_plot(title='SFI KOSDAQ')
-print(kosdaq_selected.loc[kosdaq_selected[DATE] == kosdaq_selected[DATE].max(), [CODE, NAME]])
+kosdaq_outcome = kosdaq_selected.outcome(show_plot=True)
+pprint(kosdaq_outcome)
+
+# %% ALL
+all_selected = pd.concat([kospi_selected, kosdaq_selected])
+print("ALL {}".format(all_selected[DATE].max()))
+all_outcome = all_selected.outcome(show_plot=True)
+pprint(all_outcome)
